@@ -1,0 +1,32 @@
+{
+  "name": "js-framework-benchmark-boredom",
+  "version": "0.1.0",
+  "description": "boreDOM demo",
+  "main": "dist/index.js",
+  "js-framework-benchmark": {
+    "frameworkVersion": "0.10.0",
+    "issues": [
+      800,
+      801
+    ]
+  },
+  "scripts": {
+    "build-dev": "rollup -c -w",
+    "build-prod": "rollup -c"
+  },
+  "keywords": [
+    "boreDOM",
+    "rollup"
+  ],
+  "author": "Kevin Feng",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/krausest/js-framework-benchmark",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krausest/js-framework-benchmark.git"
+  },
+  "devDependencies": {
+    "boredom": "https://github.com/HereIsKevin/boreDOM/releases/download/v0.10.0/boredom-0.10.0.tgz",
+    "rollup": "^2.45.2"
+  }
+}
