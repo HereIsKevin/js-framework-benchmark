@@ -1,0 +1,30 @@
+{
+  "name": "js-framework-benchmark-fluid",
+  "version": "0.1.0",
+  "description": "Fluid demo",
+  "main": "dist/index.js",
+  "js-framework-benchmark": {
+    "frameworkVersion": "0.1.0",
+    "issues": [
+      800
+    ]
+  },
+  "scripts": {
+    "build-dev": "rollup -c -w",
+    "build-prod": "rollup -c"
+  },
+  "keywords": [
+    "boreDOM",
+    "rollup"
+  ],
+  "author": "Kevin Feng",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/krausest/js-framework-benchmark",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krausest/js-framework-benchmark.git"
+  },
+  "devDependencies": {
+    "rollup": "^2.45.2"
+  }
+}
