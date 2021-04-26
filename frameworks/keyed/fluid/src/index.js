@@ -183,6 +183,7 @@ const template = () => html`
               <button
                 type="button"
                 class="btn btn-primary btn-block"
+                id="add"
                 @click="${add}"
               >
                 Append 1,000 rows
