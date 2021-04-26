@@ -180,7 +180,11 @@ const template = () => html`
               </button>
             </div>
             <div class="col-sm-6 smallpad">
-              <button type="button" class="btn btn-primary btn-block" id="add">
+              <button
+                type="button"
+                class="btn btn-primary btn-block"
+                @click="${add}"
+              >
                 Append 1,000 rows
               </button>
             </div>
