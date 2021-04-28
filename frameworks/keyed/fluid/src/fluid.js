@@ -1,3 +1,72 @@
+class Compiler {
+    constructor(template) {
+        this.attributes = {};
+        this.values = {};
+        this.template = template;
+        this.fragment = this.template.generate();
+        this.id = 0;
+        this.compile(this.fragment);
+    }
+    createId() {
+        const id = String(this.id);
+        this.id++;
+        return id;
+    }
+    compile(node) {
+        if (node instanceof Element) {
+            this.compileAttributes(node);
+        }
+        this.compileValues(node);
+        for (const child of node.childNodes) {
+            this.compile(child);
+        }
+    }
+    compileAttributes(element) {
+        let elementId;
+        element.id;
+        for (const attribute of element.getAttributeNames()) {
+            const value = element.getAttribute(attribute) ?? "";
+            const matches = value.match(/^<!--([0-9]+)-->$/);
+            if (matches !== null) {
+                if (typeof elementId === "undefined") {
+                    elementId = this.createId();
+                    element.setAttribute("data-fluid-id", elementId);
+                }
+                const index = Number(matches[1]);
+                this.attributes[index] = { elementId, attribute };
+                element.removeAttribute(attribute);
+            }
+        }
+    }
+    findComments(node) {
+        const result = [];
+        for (const child of node.childNodes) {
+            if (child instanceof Comment) {
+                result.push(child);
+            }
+        }
+        return result;
+    }
+    compileValues(node) {
+        for (const comment of this.findComments(node)) {
+            const value = comment.nodeValue ?? "";
+            const matches = value.match(/^([0-9]+)$/);
+            if (matches !== null) {
+                const index = Number(matches[1]);
+                this.template.values[index];
+                const startId = this.createId();
+                const start = document.createElement("span");
+                start.setAttribute("data-fluid-id", startId);
+                const endId = this.createId();
+                const end = document.createElement("span");
+                end.setAttribute("data-fluid-id", endId);
+                this.values[index] = { startId, endId };
+                comment.replaceWith(start, end);
+            }
+        }
+    }
+}
+
 class Template {
     constructor(strings, values) {
         this.strings = strings;
@@ -38,22 +107,27 @@ function html(strings, ...values) {
     return new Template(strings, values);
 }
 
-class Compiler {
+const compilers = [];
+class Instance {
     constructor(template) {
         this.attributes = {};
         this.values = {};
         this.template = template;
-        this.fragment = this.template.generate();
-        this.compile(this.fragment);
+        this.compiler = this.getCompiler(this.template);
+        this.fragment = this.compiler.fragment.cloneNode(true);
+        this.instantiateAttributes();
+        this.instantiateValues();
     }
-    compile(node) {
-        if (node instanceof Element) {
-            this.compileAttributes(node);
+    getCompiler(template) {
+        for (let index = 0; index < compilers.length; index++) {
+            const compiler = compilers[index];
+            if (compiler.template.equalStrings(template)) {
+                return compiler;
+            }
         }
-        this.compileValues(node);
-        for (const child of node.childNodes) {
-            this.compile(child);
-        }
+        const compiler = new Compiler(template);
+        compilers.push(compiler);
+        return compiler;
     }
     matchAttribute(attribute) {
         const eventMatches = attribute.match(/^@(.+)$/);
@@ -71,26 +145,19 @@ class Compiler {
             return { kind: "value", name: attribute };
         }
     }
-    compileAttributes(element) {
-        for (const attribute of element.getAttributeNames()) {
-            const value = element.getAttribute(attribute) ?? "";
-            const matches = value.match(/^<!--([0-9]+)-->$/);
-            if (matches !== null) {
-                const index = Number(matches[1]);
-                const { kind, name } = this.matchAttribute(attribute);
-                this.attributes[index] = { kind, element, name };
-                element.removeAttribute(attribute);
+    instantiateAttributes() {
+        for (const key in this.compiler.attributes) {
+            const { elementId, attribute } = this.compiler.attributes[key];
+            const { kind, name } = this.matchAttribute(attribute);
+            const element = this.fragment.querySelector(`[data-fluid-id="${elementId}"]`);
+            if (element === null) {
+                throw new Error("cached fragment missing element");
             }
+            this.attributes[key] = { kind, element, name };
         }
-    }
-    findComments(node) {
-        const result = [];
-        for (const child of node.childNodes) {
-            if (child instanceof Comment) {
-                result.push(child);
-            }
+        for (const { element } of Object.values(this.attributes)) {
+            element.removeAttribute("data-fluid-id");
         }
-        return result;
     }
     matchValue(value) {
         if (Array.isArray(value)) {
@@ -103,19 +170,19 @@ class Compiler {
             return "text";
         }
     }
-    compileValues(node) {
-        for (const comment of this.findComments(node)) {
-            const value = comment.nodeValue ?? "";
-            const matches = value.match(/^([0-9]+)$/);
-            if (matches !== null) {
-                const index = Number(matches[1]);
-                const actual = this.template.values[index];
-                const kind = this.matchValue(actual);
-                const start = new Comment();
-                const end = new Comment();
-                this.values[index] = { kind, start, end };
-                comment.replaceWith(start, end);
-            }
+    instantiateValues() {
+        for (const key in this.compiler.values) {
+            const { startId, endId } = this.compiler.values[key];
+            const kind = this.matchValue(this.template.values[key]);
+            const start = new Comment();
+            const end = new Comment();
+            this.fragment
+                .querySelector(`[data-fluid-id="${startId}"`)
+                ?.replaceWith(start);
+            this.fragment
+                .querySelector(`[data-fluid-id="${endId}"`)
+                ?.replaceWith(end);
+            this.values[key] = { kind, start, end };
         }
     }
 }
@@ -190,12 +257,12 @@ function renderTemplate(start, end, oldTemplate, newTemplate) {
     if (typeof oldTemplate === "undefined" ||
         !oldTemplate.equalStrings(newTemplate)) {
         clearNodes(start, end);
-        const compiler = new Compiler(newTemplate);
+        const instance = new Instance(newTemplate);
         const cache = {
-            attributes: compiler.attributes,
-            values: compiler.values,
+            attributes: instance.attributes,
+            values: instance.values,
         };
-        start.after(compiler.fragment);
+        start.after(instance.fragment);
         for (let index = 0; index < newTemplate.values.length; index++) {
             const value = newTemplate.values[index];
             if (index in cache.attributes) {
