@@ -230,7 +230,7 @@ const template = () => html`
       <tbody>
         ${data.map(
           (item) => html`
-            <tr id="${item.id}"" class="${item.selected ? "danger" : ""}">
+            <tr id="${item.id}" class="${item.selected ? "danger" : ""}">
               <td class="col-md-1">${item.id}</td>
               <td class="col-md-4">
                 <a>${item.label}</a>
