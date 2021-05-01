@@ -1,72 +1,3 @@
-class Compiler {
-    constructor(template) {
-        this.attributes = {};
-        this.values = {};
-        this.template = template;
-        this.fragment = this.template.generate();
-        this.id = 0;
-        this.compile(this.fragment);
-    }
-    createId() {
-        const id = String(this.id);
-        this.id++;
-        return id;
-    }
-    compile(node) {
-        if (node instanceof Element) {
-            this.compileAttributes(node);
-        }
-        this.compileValues(node);
-        for (const child of node.childNodes) {
-            this.compile(child);
-        }
-    }
-    compileAttributes(element) {
-        let elementId;
-        element.id;
-        for (const attribute of element.getAttributeNames()) {
-            const value = element.getAttribute(attribute) ?? "";
-            const matches = value.match(/^<!--([0-9]+)-->$/);
-            if (matches !== null) {
-                if (typeof elementId === "undefined") {
-                    elementId = this.createId();
-                    element.setAttribute("data-fluid-id", elementId);
-                }
-                const index = Number(matches[1]);
-                this.attributes[index] = { elementId, attribute };
-                element.removeAttribute(attribute);
-            }
-        }
-    }
-    findComments(node) {
-        const result = [];
-        for (const child of node.childNodes) {
-            if (child instanceof Comment) {
-                result.push(child);
-            }
-        }
-        return result;
-    }
-    compileValues(node) {
-        for (const comment of this.findComments(node)) {
-            const value = comment.nodeValue ?? "";
-            const matches = value.match(/^([0-9]+)$/);
-            if (matches !== null) {
-                const index = Number(matches[1]);
-                this.template.values[index];
-                const startId = this.createId();
-                const start = document.createElement("span");
-                start.setAttribute("data-fluid-id", startId);
-                const endId = this.createId();
-                const end = document.createElement("span");
-                end.setAttribute("data-fluid-id", endId);
-                this.values[index] = { startId, endId };
-                comment.replaceWith(start, end);
-            }
-        }
-    }
-}
-
 class Template {
     constructor(strings, values) {
         this.strings = strings;
@@ -89,112 +20,213 @@ class Template {
             result += `<!--${index - 1}-->`;
             result += this.strings[index];
         }
-        const cached = Template.cache[result];
-        if (typeof cached == "undefined") {
-            const template = document.createElement("template");
-            template.innerHTML = result;
-            const fragment = template.content;
-            Template.cache[result] = fragment;
-            return fragment.cloneNode(true);
-        }
-        else {
-            return cached.cloneNode(true);
-        }
+        const template = document.createElement("template");
+        template.innerHTML = result;
+        return template.content;
     }
 }
-Template.cache = {};
 function html(strings, ...values) {
     return new Template(strings, values);
+}
+
+function eventUpdater(name) {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only bind event updater to element");
+        }
+        let last;
+        return (value) => {
+            if (typeof last !== "undefined") {
+                node.removeEventListener(name, last);
+            }
+            last = value;
+            node.addEventListener(name, last);
+        };
+    };
+}
+function toggleUpdater(name) {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only toggle event updater to element");
+        }
+        return (value) => {
+            if (value) {
+                node.setAttribute(name, "");
+            }
+            else {
+                node.removeAttribute(name);
+            }
+        };
+    };
+}
+function attributeUpdater(name) {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only bind attribute updater to element");
+        }
+        return (value) => {
+            node.setAttribute(name, String(value));
+        };
+    };
+}
+function sequenceUpdater() {
+    return (node) => {
+        const start = new Comment();
+        const end = new Comment();
+        node.replaceWith(start, end);
+        return (value) => {
+            renderSequence(start, end, value);
+        };
+    };
+}
+function templateUpdater() {
+    return (node) => {
+        const start = new Comment();
+        const end = new Comment();
+        node.replaceWith(start, end);
+        return (value) => {
+            renderTemplate(start, end, value);
+        };
+    };
+}
+function textUpdater() {
+    return (node) => {
+        const text = new Text();
+        node.replaceWith(text);
+        return (value) => {
+            text.nodeValue = String(value);
+        };
+    };
+}
+
+class Compiler {
+    constructor(template) {
+        this.updaters = {};
+        this.template = template;
+        this.fragment = this.template.generate();
+        this.id = 0;
+        this.compile(this.fragment);
+    }
+    createId() {
+        const id = String(this.id);
+        this.id++;
+        return id;
+    }
+    compile(node) {
+        if (node instanceof Element) {
+            this.compileAttributes(node);
+        }
+        this.compileValues(node);
+        for (const child of node.childNodes) {
+            this.compile(child);
+        }
+    }
+    compileAttributes(element) {
+        let id;
+        for (const attribute of element.getAttributeNames()) {
+            const value = element.getAttribute(attribute) ?? "";
+            const matches = value.match(/^<!--([0-9]+)-->$/);
+            if (matches !== null) {
+                if (typeof id === "undefined") {
+                    id = this.createId();
+                    element.setAttribute("data-fluid-id", id);
+                }
+                const index = Number(matches[1]);
+                const eventMatches = attribute.match(/^@(.+)$/);
+                const toggleMatches = attribute.match(/^(.+)\?$/);
+                element.removeAttribute(attribute);
+                if (eventMatches !== null) {
+                    this.updaters[index] = { id, base: eventUpdater(eventMatches[1]) };
+                }
+                else if (toggleMatches !== null) {
+                    this.updaters[index] = { id, base: toggleUpdater(toggleMatches[1]) };
+                }
+                else {
+                    this.updaters[index] = { id, base: attributeUpdater(attribute) };
+                }
+                element.removeAttribute(attribute);
+            }
+        }
+    }
+    findComments(node) {
+        const result = [];
+        for (const child of node.childNodes) {
+            if (child instanceof Comment) {
+                result.push(child);
+            }
+        }
+        return result;
+    }
+    compileValues(node) {
+        for (const comment of this.findComments(node)) {
+            const value = comment.nodeValue ?? "";
+            const matches = value.match(/^([0-9]+)$/);
+            if (matches !== null) {
+                const index = Number(matches[1]);
+                const actual = this.template.values[index];
+                const id = this.createId();
+                const node = document.createElement("span");
+                node.setAttribute("data-fluid-id", id);
+                node.setAttribute("data-fluid-replace", "");
+                if (Array.isArray(actual)) {
+                    this.updaters[index] = { id, base: sequenceUpdater() };
+                }
+                else if (actual instanceof Template) {
+                    this.updaters[index] = { id, base: templateUpdater() };
+                }
+                else {
+                    this.updaters[index] = { id, base: textUpdater() };
+                }
+                comment.replaceWith(node);
+            }
+        }
+    }
 }
 
 const compilers = [];
 class Instance {
     constructor(template) {
-        this.attributes = {};
-        this.values = {};
+        this.updaters = {};
         this.template = template;
         this.compiler = this.getCompiler(this.template);
         this.fragment = this.compiler.fragment.cloneNode(true);
-        this.instantiateAttributes();
-        this.instantiateValues();
+        this.instantiate();
     }
     getCompiler(template) {
-        for (let index = 0; index < compilers.length; index++) {
-            const compiler = compilers[index];
+        for (const compiler of compilers) {
             if (compiler.template.equalStrings(template)) {
                 return compiler;
             }
         }
         const compiler = new Compiler(template);
-        compilers.push(compiler);
+        compilers.unshift(compiler);
         return compiler;
     }
-    matchAttribute(attribute) {
-        const eventMatches = attribute.match(/^@(.+)$/);
-        const toggleMatches = attribute.match(/^(.+)\?$/);
-        if (eventMatches !== null && toggleMatches !== null) {
-            throw new Error("attribute kind cannot be both event and toggle");
-        }
-        if (eventMatches !== null) {
-            return { kind: "event", name: eventMatches[1] };
-        }
-        else if (toggleMatches !== null) {
-            return { kind: "toggle", name: toggleMatches[1] };
-        }
-        else {
-            return { kind: "value", name: attribute };
-        }
-    }
-    instantiateAttributes() {
-        for (const key in this.compiler.attributes) {
-            const { elementId, attribute } = this.compiler.attributes[key];
-            const { kind, name } = this.matchAttribute(attribute);
-            const element = this.fragment.querySelector(`[data-fluid-id="${elementId}"]`);
-            if (element === null) {
-                throw new Error("cached fragment missing element");
+    instantiate() {
+        const targets = new Set();
+        for (const key in this.compiler.updaters) {
+            const { id, base } = this.compiler.updaters[key];
+            const target = this.fragment.querySelector(`[data-fluid-id="${id}"]`);
+            let node;
+            if (target?.hasAttribute("data-fluid-replace")) {
+                node = new Comment();
+                target?.replaceWith(node);
             }
-            this.attributes[key] = { kind, element, name };
+            else {
+                node = target;
+                targets.add(target);
+            }
+            this.updaters[key] = base(node);
         }
-        for (const { element } of Object.values(this.attributes)) {
-            element.removeAttribute("data-fluid-id");
-        }
-    }
-    matchValue(value) {
-        if (Array.isArray(value)) {
-            return "sequence";
-        }
-        else if (value instanceof Template) {
-            return "template";
-        }
-        else {
-            return "text";
-        }
-    }
-    instantiateValues() {
-        for (const key in this.compiler.values) {
-            const { startId, endId } = this.compiler.values[key];
-            const kind = this.matchValue(this.template.values[key]);
-            const start = new Comment();
-            const end = new Comment();
-            this.fragment
-                .querySelector(`[data-fluid-id="${startId}"`)
-                ?.replaceWith(start);
-            this.fragment
-                .querySelector(`[data-fluid-id="${endId}"`)
-                ?.replaceWith(end);
-            this.values[key] = { kind, start, end };
+        for (const target of targets) {
+            target.removeAttribute("data-fluid-id");
         }
     }
 }
 
-const templates = new WeakMap();
+const rendered = new WeakMap();
 const caches = new WeakMap();
 const sequences = new WeakMap();
-function clearElement(element) {
-    while (element.firstChild) {
-        element.firstChild.remove();
-    }
-}
 function clearNodes(start, end) {
     let current = start.nextSibling;
     while (current !== null && current !== end) {
@@ -202,150 +234,81 @@ function clearNodes(start, end) {
         current = start.nextSibling;
     }
 }
-function renderSequence(startMarker, endMarker, oldTemplates, newTemplates) {
-    if (typeof oldTemplates === "undefined" || oldTemplates.length === 0) {
+function renderSequence(startMarker, endMarker, templates) {
+    const sequence = sequences.get(startMarker);
+    if (templates.length === 0) {
         clearNodes(startMarker, endMarker);
+        if (typeof sequence !== "undefined") {
+            sequence.length = 0;
+        }
+        return;
+    }
+    if (typeof sequence === "undefined" || sequence.length === 0) {
         const sequence = [];
-        for (const template of newTemplates) {
-            const separator = new Comment();
+        for (const template of templates) {
             const start = new Comment();
             const end = new Comment();
-            endMarker.before(separator, start, end);
-            renderTemplate(start, end, undefined, template);
-            sequence.push({ separator, start, end });
+            endMarker.before(start, end);
+            renderTemplate(start, end, template);
+            sequence.push({ start, end });
         }
         sequences.set(startMarker, sequence);
         return;
     }
-    if (newTemplates.length === 0) {
-        clearNodes(startMarker, endMarker);
-        sequences.set(startMarker, []);
-        return;
-    }
-    const sequence = sequences.get(startMarker);
-    if (typeof sequence === "undefined") {
-        throw new Error("sequence missing");
-    }
-    while (newTemplates.length < sequence.length) {
-        const popped = sequence.pop();
-        if (typeof popped === "undefined") {
-            throw new Error("cannot align sequence length");
-        }
-        const { separator, start, end } = popped;
+    if (templates.length < sequence.length) {
+        const start = sequence[templates.length].start;
+        const end = sequence[sequence.length - 1].end;
         clearNodes(start, end);
-        separator.remove();
         start.remove();
         end.remove();
+        sequence.length = templates.length;
     }
-    while (newTemplates.length > sequence.length) {
-        const separator = new Comment();
+    while (templates.length > sequence.length) {
         const start = new Comment();
         const end = new Comment();
-        endMarker.before(separator, start, end);
-        renderTemplate(start, end, undefined, newTemplates[sequence.length]);
-        sequence.push({ separator, start, end });
+        endMarker.before(start, end);
+        renderTemplate(start, end, templates[sequence.length]);
+        sequence.push({ start, end });
     }
     for (let index = 0; index < sequence.length; index++) {
         const { start, end } = sequence[index];
-        const oldTemplate = oldTemplates[index];
-        const newTemplate = newTemplates[index];
-        renderTemplate(start, end, oldTemplate, newTemplate);
+        renderTemplate(start, end, templates[index]);
     }
-    sequences.set(startMarker, sequence);
 }
-function renderTemplate(start, end, oldTemplate, newTemplate) {
-    if (typeof oldTemplate === "undefined" ||
-        !oldTemplate.equalStrings(newTemplate)) {
+function renderTemplate(start, end, template) {
+    const cache = caches.get(start);
+    if (typeof cache === "undefined" || !cache.template.equalStrings(template)) {
         clearNodes(start, end);
-        const instance = new Instance(newTemplate);
-        const cache = {
-            attributes: instance.attributes,
-            values: instance.values,
-        };
+        const instance = new Instance(template);
         start.after(instance.fragment);
-        for (let index = 0; index < newTemplate.values.length; index++) {
-            const value = newTemplate.values[index];
-            if (index in cache.attributes) {
-                renderAttribute(cache.attributes[index], undefined, value);
-            }
-            else if (index in cache.values) {
-                renderValue(cache.values[index], undefined, value);
-            }
+        for (let index = 0; index < template.values.length; index++) {
+            const updater = instance.updaters[index];
+            const value = template.values[index];
+            updater(value);
         }
-        caches.set(start, cache);
+        caches.set(start, { template, updaters: instance.updaters });
         return;
     }
-    const cache = caches.get(start);
-    if (typeof cache === "undefined") {
-        throw new Error("render cache is missing");
-    }
-    for (let index = 0; index < newTemplate.values.length; index++) {
-        const oldValue = oldTemplate.values[index];
-        const newValue = newTemplate.values[index];
+    for (let index = 0; index < template.values.length; index++) {
+        const oldValue = cache.template.values[index];
+        const newValue = template.values[index];
         if (oldValue !== newValue) {
-            if (index in cache.attributes) {
-                renderAttribute(cache.attributes[index], oldValue, newValue);
-            }
-            else if (index in cache.values) {
-                renderValue(cache.values[index], oldValue, newValue);
-            }
+            const updater = cache.updaters[index];
+            updater(newValue);
         }
     }
-}
-function renderText(start, end, value) {
-    const next = start.nextSibling;
-    if (next instanceof Text && next.nextSibling === end) {
-        next.nodeValue = value;
-    }
-    else {
-        clearNodes(start, end);
-        start.after(new Text(value));
-    }
-}
-function renderValue({ kind, start, end }, oldValue, newValue) {
-    if (kind === "sequence") {
-        renderSequence(start, end, oldValue, newValue);
-    }
-    else if (kind === "template") {
-        renderTemplate(start, end, oldValue, newValue);
-    }
-    else if (kind === "text") {
-        renderText(start, end, String(newValue));
-    }
-}
-function renderAttribute({ kind, name, element }, oldValue, newValue) {
-    if (kind === "event") {
-        if (typeof oldValue !== "undefined") {
-            element.removeEventListener(name, oldValue);
-        }
-        element.addEventListener(name, newValue);
-    }
-    else if (kind === "toggle") {
-        if (newValue) {
-            element.setAttribute(name, "");
-        }
-        else {
-            element.removeAttribute(name);
-        }
-    }
-    else if (kind === "value") {
-        element.setAttribute(name, String(newValue));
-    }
+    cache.template = template;
 }
 function render(target, template) {
-    if (!templates.has(target)) {
-        clearElement(target);
-        target.append(new Comment(), new Comment());
+    let result = rendered.get(target);
+    if (typeof result === "undefined") {
+        const start = new Comment();
+        const end = new Comment();
+        target.append(start, end);
+        result = { start, end };
+        rendered.set(target, result);
     }
-    const start = target.firstChild;
-    const end = target.lastChild;
-    if (start instanceof Comment && end instanceof Comment) {
-        renderTemplate(start, end, templates.get(target), template);
-    }
-    else {
-        throw new Error("start or end markers missing");
-    }
-    templates.set(target, template);
+    renderTemplate(result.start, result.end, template);
 }
 
 export { Template, html, render };
