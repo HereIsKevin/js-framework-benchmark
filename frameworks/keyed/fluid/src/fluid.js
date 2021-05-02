@@ -3,7 +3,7 @@ class Template {
         this.strings = strings;
         this.values = values;
     }
-    equalStrings(template) {
+    equals(template) {
         if (this.strings.length !== template.strings.length) {
             return false;
         }
@@ -47,7 +47,7 @@ function eventUpdater(name) {
 function toggleUpdater(name) {
     return (node) => {
         if (!(node instanceof Element)) {
-            throw new Error("can only toggle event updater to element");
+            throw new Error("can only bind toggle updater to element");
         }
         return (value) => {
             if (value) {
@@ -107,7 +107,7 @@ class Compiler {
         this.id = 0;
         this.compile(this.fragment);
     }
-    createId() {
+    getId() {
         const id = String(this.id);
         this.id++;
         return id;
@@ -128,22 +128,25 @@ class Compiler {
             const matches = value.match(/^<!--([0-9]+)-->$/);
             if (matches !== null) {
                 if (typeof id === "undefined") {
-                    id = this.createId();
+                    id = this.getId();
+                    this.updaters[id] = [];
                     element.setAttribute("data-fluid-id", id);
                 }
                 const index = Number(matches[1]);
                 const eventMatches = attribute.match(/^@(.+)$/);
                 const toggleMatches = attribute.match(/^(.+)\?$/);
                 element.removeAttribute(attribute);
+                let base;
                 if (eventMatches !== null) {
-                    this.updaters[index] = { id, base: eventUpdater(eventMatches[1]) };
+                    base = eventUpdater(eventMatches[1]);
                 }
                 else if (toggleMatches !== null) {
-                    this.updaters[index] = { id, base: toggleUpdater(toggleMatches[1]) };
+                    base = toggleUpdater(toggleMatches[1]);
                 }
                 else {
-                    this.updaters[index] = { id, base: attributeUpdater(attribute) };
+                    base = attributeUpdater(attribute);
                 }
+                this.updaters[id].push({ index, base });
                 element.removeAttribute(attribute);
             }
         }
@@ -164,26 +167,26 @@ class Compiler {
             if (matches !== null) {
                 const index = Number(matches[1]);
                 const actual = this.template.values[index];
-                const id = this.createId();
+                const id = this.getId();
                 const node = document.createElement("span");
                 node.setAttribute("data-fluid-id", id);
-                node.setAttribute("data-fluid-replace", "");
+                let base;
                 if (Array.isArray(actual)) {
-                    this.updaters[index] = { id, base: sequenceUpdater() };
+                    base = sequenceUpdater();
                 }
                 else if (actual instanceof Template) {
-                    this.updaters[index] = { id, base: templateUpdater() };
+                    base = templateUpdater();
                 }
                 else {
-                    this.updaters[index] = { id, base: textUpdater() };
+                    base = textUpdater();
                 }
+                this.updaters[id] = [{ index, base }];
                 comment.replaceWith(node);
             }
         }
     }
 }
 
-const compilers = [];
 class Instance {
     constructor(template) {
         this.updaters = {};
@@ -193,38 +196,28 @@ class Instance {
         this.instantiate();
     }
     getCompiler(template) {
-        for (const compiler of compilers) {
-            if (compiler.template.equalStrings(template)) {
+        for (const compiler of Instance.compilers) {
+            if (compiler.template.equals(template)) {
                 return compiler;
             }
         }
         const compiler = new Compiler(template);
-        compilers.unshift(compiler);
+        Instance.compilers.push(compiler);
         return compiler;
     }
     instantiate() {
-        const targets = new Set();
-        for (const key in this.compiler.updaters) {
-            const { id, base } = this.compiler.updaters[key];
-            const target = this.fragment.querySelector(`[data-fluid-id="${id}"]`);
-            let node;
-            if (target?.hasAttribute("data-fluid-replace")) {
-                node = new Comment();
-                target?.replaceWith(node);
+        for (const target of this.fragment.querySelectorAll("[data-fluid-id]")) {
+            const id = Number(target.getAttribute("data-fluid-id"));
+            for (const { index, base } of this.compiler.updaters[id]) {
+                this.updaters[index] = base(target);
             }
-            else {
-                node = target;
-                targets.add(target);
-            }
-            this.updaters[key] = base(node);
-        }
-        for (const target of targets) {
             target.removeAttribute("data-fluid-id");
         }
     }
 }
+Instance.compilers = [];
 
-const rendered = new WeakMap();
+const holes = new WeakMap();
 const caches = new WeakMap();
 const sequences = new WeakMap();
 function clearNodes(start, end) {
@@ -236,13 +229,6 @@ function clearNodes(start, end) {
 }
 function renderSequence(startMarker, endMarker, templates) {
     const sequence = sequences.get(startMarker);
-    if (templates.length === 0) {
-        clearNodes(startMarker, endMarker);
-        if (typeof sequence !== "undefined") {
-            sequence.length = 0;
-        }
-        return;
-    }
     if (typeof sequence === "undefined" || sequence.length === 0) {
         const sequence = [];
         for (const template of templates) {
@@ -253,6 +239,13 @@ function renderSequence(startMarker, endMarker, templates) {
             sequence.push({ start, end });
         }
         sequences.set(startMarker, sequence);
+        return;
+    }
+    if (templates.length === 0) {
+        clearNodes(startMarker, endMarker);
+        if (typeof sequence !== "undefined") {
+            sequence.length = 0;
+        }
         return;
     }
     if (templates.length < sequence.length) {
@@ -277,9 +270,9 @@ function renderSequence(startMarker, endMarker, templates) {
 }
 function renderTemplate(start, end, template) {
     const cache = caches.get(start);
-    if (typeof cache === "undefined" || !cache.template.equalStrings(template)) {
-        clearNodes(start, end);
+    if (typeof cache === "undefined" || !cache.template.equals(template)) {
         const instance = new Instance(template);
+        clearNodes(start, end);
         start.after(instance.fragment);
         for (let index = 0; index < template.values.length; index++) {
             const updater = instance.updaters[index];
@@ -300,15 +293,15 @@ function renderTemplate(start, end, template) {
     cache.template = template;
 }
 function render(target, template) {
-    let result = rendered.get(target);
-    if (typeof result === "undefined") {
+    let hole = holes.get(target);
+    if (typeof hole === "undefined") {
         const start = new Comment();
         const end = new Comment();
         target.append(start, end);
-        result = { start, end };
-        rendered.set(target, result);
+        hole = { start, end };
+        holes.set(target, hole);
     }
-    renderTemplate(result.start, result.end, template);
+    renderTemplate(hole.start, hole.end, template);
 }
 
 export { Template, html, render };
