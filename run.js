@@ -1,7 +1,20 @@
 const child_process = require("child_process");
 const path = require("path");
 
-const frameworks = [
+const keyed = [
+  "keyed/1more",
+  "keyed/angular",
+  "keyed/boredom",
+  "keyed/fluid",
+  "keyed/hyperhtml",
+  "keyed/lit-html",
+  "keyed/react",
+  "keyed/solid",
+  "keyed/vanillajs",
+  "keyed/vue",
+];
+
+const nonKeyed = [
   "non-keyed/angular",
   "non-keyed/aurelia",
   "non-keyed/elm",
@@ -36,8 +49,8 @@ const execute = (command, options) => {
   }
 };
 
-if (process.argv.includes("build")) {
-  for (const framework of frameworks) {
+if (process.argv.includes("build-keyed")) {
+  for (const framework of keyed) {
     message(`BUILDING ${framework}`);
 
     const options = {
@@ -49,13 +62,36 @@ if (process.argv.includes("build")) {
     execute("npm audit fix", options);
     execute("npm run build-prod", options);
   }
-} else if (process.argv.includes("benchmark")) {
+} else if (process.argv.includes("build-non-keyed")) {
+  for (const framework of nonKeyed) {
+    message(`BUILDING ${framework}`);
+
+    const options = {
+      cwd: path.join(process.cwd(), "frameworks", framework),
+      stdio: "inherit",
+    };
+
+    execute("npm install", options);
+    execute("npm audit fix", options);
+    execute("npm run build-prod", options);
+  }
+} else if (process.argv.includes("bench-keyed")) {
   const options = {
     cwd: path.join(process.cwd(), "webdriver-ts"),
     stdio: "inherit",
   };
 
-  for (const framework of frameworks) {
+  for (const framework of keyed) {
+    message(`RUNNING ${framework}`);
+    execute(`npm run bench ${framework}`, options);
+  }
+} else if (process.argv.includes("bench-non-keyed")) {
+  const options = {
+    cwd: path.join(process.cwd(), "webdriver-ts"),
+    stdio: "inherit",
+  };
+
+  for (const framework of nonKeyed) {
     message(`RUNNING ${framework}`);
     execute(`npm run bench ${framework}`, options);
   }
