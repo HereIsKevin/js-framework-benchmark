@@ -1,4 +1,4 @@
-import { html, render } from "./fluid.js";
+import { html, render } from "@hereiskevin/fluid";
 
 const adjectives = [
   "pretty",
