@@ -59,6 +59,46 @@ function toggleUpdater(name) {
         };
     };
 }
+function propertyUpdater(name) {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only bind property updater to element");
+        }
+        return (value) => {
+            Reflect.set(node, name, value);
+        };
+    };
+}
+function referenceUpdater() {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only bind reference updater to element");
+        }
+        return (value) => {
+            value(node);
+        };
+    };
+}
+function styleUpdater() {
+    return (node) => {
+        if (!(node instanceof Element)) {
+            throw new Error("can only bind style updater to element");
+        }
+        let oldValues = {};
+        return (value) => {
+            const element = node;
+            const values = value;
+            for (const key in values) {
+                const oldValue = oldValues[key];
+                const newValue = values[key];
+                if (oldValue !== newValue) {
+                    Reflect.set(element.style, key, newValue);
+                }
+            }
+            oldValues = values;
+        };
+    };
+}
 function attributeUpdater(name) {
     return (node) => {
         if (!(node instanceof Element)) {
@@ -74,8 +114,19 @@ function sequenceUpdater() {
         const start = new Comment();
         const end = new Comment();
         node.replaceWith(start, end);
+        let keyed;
         return (value) => {
-            renderSequence(start, end, value);
+            if (typeof keyed === "undefined" &&
+                Array.isArray(value) &&
+                value.length > 0) {
+                keyed = Array.isArray(value[0]);
+            }
+            if (keyed) {
+                renderArrangement(start, end, value);
+            }
+            else {
+                renderSequence(start, end, value);
+            }
         };
     };
 }
@@ -135,6 +186,7 @@ class Compiler {
                 const index = Number(matches[1]);
                 const eventMatches = attribute.match(/^@(.+)$/);
                 const toggleMatches = attribute.match(/^(.+)\?$/);
+                const propertyMatches = attribute.match(/^\.(.+)$/);
                 element.removeAttribute(attribute);
                 let base;
                 if (eventMatches !== null) {
@@ -142,6 +194,20 @@ class Compiler {
                 }
                 else if (toggleMatches !== null) {
                     base = toggleUpdater(toggleMatches[1]);
+                }
+                else if (propertyMatches !== null) {
+                    base = propertyUpdater(propertyMatches[1]);
+                }
+                else if (attribute === "ref") {
+                    base = referenceUpdater();
+                }
+                else if (attribute === "style") {
+                    if (typeof this.template.values[index] === "string") {
+                        base = attributeUpdater("style");
+                    }
+                    else {
+                        base = styleUpdater();
+                    }
                 }
                 else {
                     base = attributeUpdater(attribute);
@@ -218,6 +284,7 @@ class Instance {
 Instance.compilers = [];
 
 const holes = new WeakMap();
+const burrows = new WeakMap();
 const caches = new WeakMap();
 const sequences = new WeakMap();
 function clearNodes(start, end) {
@@ -225,6 +292,61 @@ function clearNodes(start, end) {
     while (current !== null && current !== end) {
         current.remove();
         current = start.nextSibling;
+    }
+}
+function renderArrangement(startMarker, endMarker, arrangements) {
+    const burrow = burrows.get(startMarker);
+    if (typeof burrow === "undefined" || burrow.length === 0) {
+        const burrow = [];
+        for (const [key, template] of arrangements) {
+            const start = new Comment();
+            const end = new Comment();
+            endMarker.before(start, end);
+            renderTemplate(start, end, template);
+            burrow.push({ key, start, end });
+        }
+        burrows.set(startMarker, burrow);
+        return;
+    }
+    if (arrangements.length === 0) {
+        clearNodes(startMarker, endMarker);
+        if (typeof burrow !== "undefined") {
+            burrow.length = 0;
+        }
+        return;
+    }
+    const oldKeys = burrow.map((value) => value.key);
+    const newKeys = arrangements.map((value) => value[0]);
+    let oldIndex = 0;
+    let newIndex = 0;
+    while (oldIndex <= oldKeys.length && newIndex <= newKeys.length) {
+        const oldKey = oldKeys[oldIndex];
+        const newKey = newKeys[newIndex];
+        if (typeof oldKey === "undefined" && typeof newKey === "undefined") {
+            break;
+        }
+        if (oldKey === newKey) {
+            const { start, end } = burrow[oldIndex];
+            const template = arrangements[newIndex][1];
+            renderTemplate(start, end, template);
+            oldIndex++;
+            newIndex++;
+        }
+        else if (oldKeys.length < newKeys.length) {
+            const marker = burrow[oldIndex]?.start ?? endMarker;
+            const start = new Comment();
+            const end = new Comment();
+            marker.before(start, end);
+            burrow.splice(oldIndex, 0, { key: newKey, start, end });
+            oldKeys.splice(oldIndex, 0, newKey);
+        }
+        else {
+            const { start, end } = burrow.splice(oldIndex, 1)[0];
+            clearNodes(start, end);
+            start.remove();
+            end.remove();
+            oldKeys.splice(oldIndex, 1);
+        }
     }
 }
 function renderSequence(startMarker, endMarker, templates) {

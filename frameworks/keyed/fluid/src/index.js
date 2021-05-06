@@ -228,8 +228,9 @@ const template = () => html`
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        ${data.map(
-          (item) => html`
+        ${data.map((item) => [
+          item.id,
+          html`
             <tr id="${item.id}" class="${item.selected ? "danger" : ""}">
               <td class="col-md-1">${item.id}</td>
               <td class="col-md-4">
@@ -245,8 +246,8 @@ const template = () => html`
               </td>
               <td class="col-md-6"></td>
             </tr>
-          `
-        )}
+          `,
+        ])}
       </tbody>
     </table>
     <span
