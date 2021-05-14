@@ -1,10 +1,10 @@
 {
   "name": "js-framework-benchmark-incinerate",
-  "version": "0.5.0",
+  "version": "0.1.0",
   "description": "Incinerate demo",
   "main": "dist/index.js",
   "js-framework-benchmark": {
-    "frameworkVersion": "0.5.0"
+    "frameworkVersion": "0.1.0"
   },
   "scripts": {
     "build-dev": "rollup -c -w",

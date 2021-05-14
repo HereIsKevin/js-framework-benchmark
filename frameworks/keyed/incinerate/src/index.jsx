@@ -64,19 +64,19 @@ let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  data([...data(), ...buildData(1000)]);
+  incinerate.push(data, ...buildData(1000));
 };
 
 const run = () => {
-  data(buildData(1000));
+  incinerate.replace(data, ...buildData(1000));
 };
 
 const runLots = () => {
-  data(buildData(10000));
+  incinerate.replace(data, ...buildData(10000));
 };
 
 const clear = () => {
-  data([]);
+  incinerate.clear(data);
 };
 
 const interact = (event) => {
@@ -93,34 +93,28 @@ const interact = (event) => {
 
 const del = (id) => {
   const idIndex = data().findIndex((d) => d.id === id);
-
-  data([...data().slice(0, idIndex), ...data().slice(idIndex + 1)]);
+  incinerate.splice(data, idIndex, 1);
 };
 
 const select = (id) => {
   if (selected > -1) {
-    data()[selected].selected(false);
+    incinerate.get(data, selected).selected(false);
   }
 
   selected = data().findIndex((d) => d.id === id);
-  data()[selected].selected(true);
+  incinerate.get(data, selected).selected(true);
 };
 
 const swapRows = () => {
   if (data().length > 998) {
-    data([
-      data()[0],
-      data()[998],
-      ...data().slice(2, 998),
-      data()[1],
-      ...data().slice(999),
-    ]);
+    incinerate.swap(data, 1, 998);
   }
 };
 
 const update = () => {
   for (let index = 0; index < data().length; index += 10) {
-    data()[index].label(`${data()[index].label()} !!!`);
+    const item = incinerate.get(data, index);
+    item.label(`${item.label()} !!!`);
   }
 };
 
