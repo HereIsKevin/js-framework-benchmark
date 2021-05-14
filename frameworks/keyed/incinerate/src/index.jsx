@@ -68,11 +68,11 @@ const add = () => {
 };
 
 const run = () => {
-  incinerate.replace(data, ...buildData(1000));
+  incinerate.replace(data, buildData(1000));
 };
 
 const runLots = () => {
-  incinerate.replace(data, ...buildData(10000));
+  incinerate.replace(data, buildData(10000));
 };
 
 const clear = () => {
@@ -119,10 +119,10 @@ const update = () => {
 };
 
 const buildData = (count) => {
-  const data = [];
+  const data = new Array(count);
 
   for (let index = 0; index < count; index++) {
-    data.push({
+    data[index] = {
       id: dataId,
       label: incinerate.observable(
         `${adjectives[_random(adjectives.length)]} ${
@@ -130,7 +130,7 @@ const buildData = (count) => {
         } ${nouns[_random(nouns.length)]}`
       ),
       selected: incinerate.observable(false),
-    });
+    };
 
     dataId++;
   }
