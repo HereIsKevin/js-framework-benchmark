@@ -1,3 +1,5 @@
+import * as incinerate from "@incinerate/runtime";
+
 const _random = (max) => Math.round(Math.random() * 1000) % max;
 
 const adjectives = [
@@ -58,7 +60,7 @@ const nouns = [
   "keyboard",
 ];
 
-const data = incinerate.observable([]);
+const data = incinerate.signal([]);
 
 let dataId = 1;
 let selected = -1;
@@ -124,12 +126,12 @@ const buildData = (count) => {
   for (let index = 0; index < count; index++) {
     data[index] = {
       id: dataId,
-      label: incinerate.observable(
+      label: incinerate.signal(
         `${adjectives[_random(adjectives.length)]} ${
           colors[_random(colors.length)]
         } ${nouns[_random(nouns.length)]}`
       ),
-      selected: incinerate.observable(false),
+      selected: incinerate.signal(false),
     };
 
     dataId++;
@@ -153,7 +155,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="run"
-                onClick={run}
+                onclick={run}
               >
                 Create 1,000 rows
               </button>
@@ -163,7 +165,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="runlots"
-                onClick={runLots}
+                onclick={runLots}
               >
                 Create 10,000 rows
               </button>
@@ -173,7 +175,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="add"
-                onClick={add}
+                onclick={add}
               >
                 Append 1,000 rows
               </button>
@@ -183,7 +185,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="update"
-                onClick={update}
+                onclick={update}
               >
                 Update every 10th row
               </button>
@@ -193,7 +195,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="clear"
-                onClick={clear}
+                onclick={clear}
               >
                 Clear
               </button>
@@ -203,7 +205,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="swaprows"
-                onClick={swapRows}
+                onclick={swapRows}
               >
                 Swap Rows
               </button>
@@ -212,7 +214,7 @@ const template = (
         </div>
       </div>
     </div>
-    <table onClick={interact} class="table table-hover table-striped test-data">
+    <table onclick={interact} class="table table-hover table-striped test-data">
       <tbody>
         {incinerate.sequence(
           data,
