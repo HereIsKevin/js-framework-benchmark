@@ -5,7 +5,9 @@
   "main": "index.js",
   "js-framework-benchmark": {
     "frameworkVersionFromPackage": "lighterhtml",
-    "issues": [801]
+    "issues": [
+      801
+    ]
   },
   "scripts": {
     "build-dev": "rollup -c -w",
