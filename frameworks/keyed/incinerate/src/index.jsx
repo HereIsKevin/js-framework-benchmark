@@ -1,4 +1,5 @@
-import * as incinerate from "@incinerate/runtime";
+import { event, sequence } from "@incinerate/runtime/directives";
+import { array, signal } from "@incinerate/runtime";
 
 const _random = (max) => Math.round(Math.random() * 1000) % max;
 
@@ -60,25 +61,27 @@ const nouns = [
   "keyboard",
 ];
 
-const data = incinerate.signal([]);
+const data = array([]);
 
 let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  incinerate.push(data, ...buildData(1000));
+  data.push(...buildData(1000));
 };
 
 const run = () => {
-  incinerate.replace(data, buildData(1000));
+  data.count(0);
+  data.push(...buildData(1000));
 };
 
 const runLots = () => {
-  incinerate.replace(data, buildData(10000));
+  data.count(0);
+  data.push(...buildData(10000));
 };
 
 const clear = () => {
-  incinerate.clear(data);
+  data.count(0);
 };
 
 const interact = (event) => {
@@ -95,27 +98,29 @@ const interact = (event) => {
 
 const del = (id) => {
   const idIndex = data().findIndex((d) => d.id === id);
-  incinerate.splice(data, idIndex, 1);
+  data.splice(idIndex, 1);
 };
 
 const select = (id) => {
   if (selected > -1) {
-    incinerate.get(data, selected).selected(false);
+    data.get(selected).selected(false);
   }
 
   selected = data().findIndex((d) => d.id === id);
-  incinerate.get(data, selected).selected(true);
+  data.get(selected).selected(true);
 };
 
 const swapRows = () => {
-  if (data().length > 998) {
-    incinerate.swap(data, 1, 998);
+  if (data.count() > 998) {
+    const actual = data();
+    [actual[998], actual[1]] = [actual[1], actual[998]];
+    data(actual);
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data().length; index += 10) {
-    const item = incinerate.get(data, index);
+  for (let index = 0; index < data.count(); index += 10) {
+    const item = data.get(index);
     item.label(`${item.label()} !!!`);
   }
 };
@@ -126,12 +131,12 @@ const buildData = (count) => {
   for (let index = 0; index < count; index++) {
     data[index] = {
       id: dataId,
-      label: incinerate.signal(
+      label: signal(
         `${adjectives[_random(adjectives.length)]} ${
           colors[_random(colors.length)]
         } ${nouns[_random(nouns.length)]}`
       ),
-      selected: incinerate.signal(false),
+      selected: signal(false),
     };
 
     dataId++;
@@ -155,7 +160,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="run"
-                onclick={run}
+                event:click={run}
               >
                 Create 1,000 rows
               </button>
@@ -165,7 +170,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="runlots"
-                onclick={runLots}
+                event:click={runLots}
               >
                 Create 10,000 rows
               </button>
@@ -175,7 +180,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="add"
-                onclick={add}
+                event:click={add}
               >
                 Append 1,000 rows
               </button>
@@ -185,7 +190,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="update"
-                onclick={update}
+                event:click={update}
               >
                 Update every 10th row
               </button>
@@ -195,7 +200,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="clear"
-                onclick={clear}
+                event:click={clear}
               >
                 Clear
               </button>
@@ -205,7 +210,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="swaprows"
-                onclick={swapRows}
+                event:click={swapRows}
               >
                 Swap Rows
               </button>
@@ -214,9 +219,12 @@ const template = (
         </div>
       </div>
     </div>
-    <table onclick={interact} class="table table-hover table-striped test-data">
+    <table
+      event:click={interact}
+      class="table table-hover table-striped test-data"
+    >
       <tbody>
-        {incinerate.sequence(
+        {sequence(
           data,
           (item) => item.id,
           (item) => (
