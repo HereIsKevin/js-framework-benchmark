@@ -71,17 +71,17 @@ const add = () => {
 };
 
 const run = () => {
-  data.count(0);
+  data.length(0);
   data.push(...buildData(1000));
 };
 
 const runLots = () => {
-  data.count(0);
+  data.length(0);
   data.push(...buildData(10000));
 };
 
 const clear = () => {
-  data.count(0);
+  data.length(0);
 };
 
 const interact = (event) => {
@@ -97,7 +97,7 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data().findIndex((d) => d.id === id);
+  const idIndex = data.actual().findIndex((d) => d.id === id);
   data.splice(idIndex, 1);
 };
 
@@ -106,20 +106,18 @@ const select = (id) => {
     data.get(selected).selected(false);
   }
 
-  selected = data().findIndex((d) => d.id === id);
+  selected = data.actual().findIndex((d) => d.id === id);
   data.get(selected).selected(true);
 };
 
 const swapRows = () => {
-  if (data.count() > 998) {
-    const actual = data();
-    [actual[998], actual[1]] = [actual[1], actual[998]];
-    data(actual);
+  if (data.length() > 998) {
+    data.swap(1, 998);
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data.count(); index += 10) {
+  for (let index = 0; index < data.length(); index += 10) {
     const item = data.get(index);
     item.label(`${item.label()} !!!`);
   }
@@ -225,7 +223,7 @@ const template = (
     >
       <tbody>
         {sequence(
-          data,
+          data.actual,
           (item) => item.id,
           (item) => (
             <tr id={item.id} class={item.selected() ? "danger" : ""}>
