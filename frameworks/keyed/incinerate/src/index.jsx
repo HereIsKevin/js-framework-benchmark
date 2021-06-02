@@ -1,4 +1,4 @@
-import { event, sequence } from "@incinerate/runtime/directives";
+import { event } from "@incinerate/runtime/directives";
 import { array, signal } from "@incinerate/runtime";
 
 const _random = (max) => Math.round(Math.random() * 1000) % max;
@@ -222,27 +222,23 @@ const template = (
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        {sequence(
-          data.actual,
-          (item) => item.id,
-          (item) => (
-            <tr id={item.id} class={item.selected() ? "danger" : ""}>
-              <td class="col-md-1">{item.id}</td>
-              <td class="col-md-4">
-                <a>{item.label()}</a>
-              </td>
-              <td data-interaction="delete" class="col-md-1">
-                <a>
-                  <span
-                    class="glyphicon glyphicon-remove"
-                    aria-hidden="true"
-                  ></span>
-                </a>
-              </td>
-              <td class="col-md-6"></td>
-            </tr>
-          )
-        )}
+        {data.map((item) => (
+          <tr id={item.id} class={item.selected() ? "danger" : ""}>
+            <td class="col-md-1">{item.id}</td>
+            <td class="col-md-4">
+              <a>{item.label()}</a>
+            </td>
+            <td data-interaction="delete" class="col-md-1">
+              <a>
+                <span
+                  class="glyphicon glyphicon-remove"
+                  aria-hidden="true"
+                ></span>
+              </a>
+            </td>
+            <td class="col-md-6"></td>
+          </tr>
+        ))}
       </tbody>
     </table>
     <span
