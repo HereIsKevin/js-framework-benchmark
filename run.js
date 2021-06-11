@@ -4,7 +4,6 @@ const path = require("path");
 const frameworks = [
   "keyed/1more",
   "keyed/elm",
-  "keyed/fluid",
   "keyed/hyperhtml",
   "keyed/imba",
   "keyed/incinerate",
