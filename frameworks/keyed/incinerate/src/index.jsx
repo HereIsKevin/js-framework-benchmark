@@ -1,5 +1,4 @@
-import { event } from "@incinerate/runtime/directives";
-import { array, signal } from "@incinerate/runtime";
+import { signal } from "@incinerate/runtime";
 
 const _random = (max) => Math.round(Math.random() * 1000) % max;
 
@@ -61,27 +60,35 @@ const nouns = [
   "keyboard",
 ];
 
-const data = array([]);
+const data = signal([]);
 
 let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  data.push(...buildData(1000));
+  data().push(...buildData(1000));
+  data(data());
 };
 
 const run = () => {
-  data.length(0);
-  data.push(...buildData(1000));
+  data().length = 0;
+  data(data());
+
+  data().push(...buildData(1000));
+  data(data());
 };
 
 const runLots = () => {
-  data.length(0);
-  data.push(...buildData(10000));
+  data().length = 0;
+  data(data());
+
+  data().push(...buildData(10000));
+  data(data());
 };
 
 const clear = () => {
-  data.length(0);
+  data().length = 0;
+  data(data());
 };
 
 const interact = (event) => {
@@ -97,28 +104,33 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data.actual().findIndex((d) => d.id === id);
-  data.splice(idIndex, 1);
+  const idIndex = data().findIndex((d) => d.id === id);
+
+  data().splice(idIndex, 1);
+  data(data());
 };
 
 const select = (id) => {
   if (selected > -1) {
-    data.get(selected).selected(false);
+    data()[selected].selected(false);
   }
 
-  selected = data.actual().findIndex((d) => d.id === id);
-  data.get(selected).selected(true);
+  selected = data().findIndex((d) => d.id === id);
+  data()[selected].selected(true);
 };
 
 const swapRows = () => {
-  if (data.length() > 998) {
-    data.swap(1, 998);
+  if (data().length > 998) {
+    const extracted = data();
+    [extracted[998], extracted[1]] = [extracted[1], extracted[998]]
+
+    data(extracted);
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data.length(); index += 10) {
-    const item = data.get(index);
+  for (let index = 0; index < data().length; index += 10) {
+    const item = data()[index];
     item.label(`${item.label()} !!!`);
   }
 };
@@ -222,7 +234,7 @@ const template = (
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        {data.map((item) => (
+        {data().map((item) => (
           <tr id={item.id} class={item.selected() ? "danger" : ""}>
             <td class="col-md-1">{item.id}</td>
             <td class="col-md-4">

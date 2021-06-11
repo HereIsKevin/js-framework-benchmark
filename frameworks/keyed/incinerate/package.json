@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@incinerate/babel-plugin": "file:../../../../../incinerate/packages/babel-plugin",
+    "@incinerate/internal": "file:../../../../../incinerate/packages/internal",
     "@incinerate/runtime": "file:../../../../../incinerate/packages/runtime",
     "@rollup/plugin-babel": "^5.3.0",
     "@rollup/plugin-node-resolve": "^13.0.0",
