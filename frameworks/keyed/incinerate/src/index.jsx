@@ -122,7 +122,7 @@ const select = (id) => {
 const swapRows = () => {
   if (data().length > 998) {
     const extracted = data();
-    [extracted[998], extracted[1]] = [extracted[1], extracted[998]]
+    [extracted[998], extracted[1]] = [extracted[1], extracted[998]];
 
     data(extracted);
   }
@@ -170,7 +170,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="run"
-                event:click={run}
+                on:click={run}
               >
                 Create 1,000 rows
               </button>
@@ -180,7 +180,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="runlots"
-                event:click={runLots}
+                on:click={runLots}
               >
                 Create 10,000 rows
               </button>
@@ -190,7 +190,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="add"
-                event:click={add}
+                on:click={add}
               >
                 Append 1,000 rows
               </button>
@@ -200,7 +200,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="update"
-                event:click={update}
+                on:click={update}
               >
                 Update every 10th row
               </button>
@@ -210,7 +210,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="clear"
-                event:click={clear}
+                on:click={clear}
               >
                 Clear
               </button>
@@ -220,7 +220,7 @@ const template = (
                 type="button"
                 class="btn btn-primary btn-block"
                 id="swaprows"
-                event:click={swapRows}
+                on:click={swapRows}
               >
                 Swap Rows
               </button>
@@ -230,7 +230,7 @@ const template = (
       </div>
     </div>
     <table
-      event:click={interact}
+      on:click={interact}
       class="table table-hover table-striped test-data"
     >
       <tbody>
