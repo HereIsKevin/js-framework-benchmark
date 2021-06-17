@@ -66,29 +66,19 @@ let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  data.push(...buildData(1000));
-  data.value = data.value;
+  data.value = [...data.value, ...buildData(1000)];
 };
 
 const run = () => {
-  data.length = 0;
-  data.value = data.value;
-
-  data.push(...buildData(1000));
-  data.value = data.value;
+  data.value = buildData(1000);
 };
 
 const runLots = () => {
-  data.length = 0;
-  data.value = data.value;
-
-  data.push(...buildData(10000));
-  data.value = data.value;
+  data.value = buildData(10000);
 };
 
 const clear = () => {
-  data.length = 0;
-  data.value = data.value;
+  data.value = [];
 };
 
 const interact = (event) => {
@@ -104,33 +94,31 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data.findIndex((d) => d.id.value === id);
+  const idIndex = data.value.findIndex((d) => d.id.value === id);
 
-  data.splice(idIndex, 1);
+  data.value.splice(idIndex, 1);
   data.value = data.value;
 };
 
 const select = (id) => {
   if (selected > -1) {
-    data[selected].selected.value = false;
+    data.value[selected].selected.value = false;
   }
 
-  selected = data.findIndex((d) => d.id.value === id);
-  data[selected].selected.value = true;
+  selected = data.value.findIndex((d) => d.id.value === id);
+  data.value[selected].selected.value = true;
 };
 
 const swapRows = () => {
   if (data.length > 998) {
-    const extracted = data.value;
-    [extracted[998], extracted[1]] = [extracted[1], extracted[998]];
-
-    data.value = extracted;
+    [data.value[998], data.value[1]] = [data.value[1], data.value[998]];
+    data.value = data.value;
   }
 };
 
 const update = () => {
   for (let index = 0; index < data.length; index += 10) {
-    const item = data[index];
+    const item = data.value[index];
     item.label.value = `${item.label.value} !!!`;
   }
 };
@@ -141,10 +129,12 @@ const buildData = (count) => {
   for (let index = 0; index < count; index++) {
     data[index] = {
       id: dataId,
-      label: `${adjectives[_random(adjectives.length)]} ${
-        colors[_random(colors.length)]
-      } ${nouns[_random(nouns.length)]}`,
-      selected: false,
+      label: reactive(
+        `${adjectives[_random(adjectives.length)]} ${
+          colors[_random(colors.length)]
+        } ${nouns[_random(nouns.length)]}`
+      ),
+      selected: reactive(false),
     };
 
     dataId++;
