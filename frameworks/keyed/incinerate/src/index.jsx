@@ -1,4 +1,4 @@
-import { signal } from "@incinerate/runtime";
+import { reactive } from "@incinerate/runtime";
 
 const _random = (max) => Math.round(Math.random() * 1000) % max;
 
@@ -60,35 +60,35 @@ const nouns = [
   "keyboard",
 ];
 
-const data = signal([]);
+const data = reactive([]);
 
 let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  data().push(...buildData(1000));
-  data(data());
+  data.push(...buildData(1000));
+  data.value = data.value;
 };
 
 const run = () => {
-  data().length = 0;
-  data(data());
+  data.length = 0;
+  data.value = data.value;
 
-  data().push(...buildData(1000));
-  data(data());
+  data.push(...buildData(1000));
+  data.value = data.value;
 };
 
 const runLots = () => {
-  data().length = 0;
-  data(data());
+  data.length = 0;
+  data.value = data.value;
 
-  data().push(...buildData(10000));
-  data(data());
+  data.push(...buildData(10000));
+  data.value = data.value;
 };
 
 const clear = () => {
-  data().length = 0;
-  data(data());
+  data.length = 0;
+  data.value = data.value;
 };
 
 const interact = (event) => {
@@ -104,34 +104,34 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data().findIndex((d) => d.id === id);
+  const idIndex = data.findIndex((d) => d.id.value === id);
 
-  data().splice(idIndex, 1);
-  data(data());
+  data.splice(idIndex, 1);
+  data.value = data.value;
 };
 
 const select = (id) => {
   if (selected > -1) {
-    data()[selected].selected(false);
+    data[selected].selected.value = false;
   }
 
-  selected = data().findIndex((d) => d.id === id);
-  data()[selected].selected(true);
+  selected = data.findIndex((d) => d.id.value === id);
+  data[selected].selected.value = true;
 };
 
 const swapRows = () => {
-  if (data().length > 998) {
-    const extracted = data();
+  if (data.length > 998) {
+    const extracted = data.value;
     [extracted[998], extracted[1]] = [extracted[1], extracted[998]];
 
-    data(extracted);
+    data.value = extracted;
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data().length; index += 10) {
-    const item = data()[index];
-    item.label(`${item.label()} !!!`);
+  for (let index = 0; index < data.length; index += 10) {
+    const item = data[index];
+    item.label.value = `${item.label.value} !!!`;
   }
 };
 
@@ -141,12 +141,10 @@ const buildData = (count) => {
   for (let index = 0; index < count; index++) {
     data[index] = {
       id: dataId,
-      label: signal(
-        `${adjectives[_random(adjectives.length)]} ${
-          colors[_random(colors.length)]
-        } ${nouns[_random(nouns.length)]}`
-      ),
-      selected: signal(false),
+      label: `${adjectives[_random(adjectives.length)]} ${
+        colors[_random(colors.length)]
+      } ${nouns[_random(nouns.length)]}`,
+      selected: false,
     };
 
     dataId++;
@@ -234,11 +232,11 @@ const template = (
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        {data().map((item) => (
-          <tr id={item.id} class={item.selected() ? "danger" : ""}>
-            <td class="col-md-1">{item.id}</td>
+        {data.map((item) => (
+          <tr id={item.id.value} class={item.selected.value ? "danger" : ""}>
+            <td class="col-md-1">{item.id.value}</td>
             <td class="col-md-4">
-              <a>{item.label()}</a>
+              <a>{item.label.value}</a>
             </td>
             <td data-interaction="delete" class="col-md-1">
               <a>
