@@ -70,10 +70,12 @@ const add = () => {
 };
 
 const run = () => {
+  data.value = [];
   data.value = buildData(1000);
 };
 
 const runLots = () => {
+  data.value = [];
   data.value = buildData(10000);
 };
 
@@ -94,7 +96,7 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data.value.findIndex((d) => d.id.value === id);
+  const idIndex = data.value.findIndex((d) => d.id === id);
 
   data.value.splice(idIndex, 1);
   data.value = data.value;
@@ -105,19 +107,19 @@ const select = (id) => {
     data.value[selected].selected.value = false;
   }
 
-  selected = data.value.findIndex((d) => d.id.value === id);
+  selected = data.value.findIndex((d) => d.id === id);
   data.value[selected].selected.value = true;
 };
 
 const swapRows = () => {
-  if (data.length > 998) {
+  if (data.value.length > 998) {
     [data.value[998], data.value[1]] = [data.value[1], data.value[998]];
     data.value = data.value;
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data.length; index += 10) {
+  for (let index = 0; index < data.value.length; index += 10) {
     const item = data.value[index];
     item.label.value = `${item.label.value} !!!`;
   }
@@ -222,9 +224,9 @@ const template = (
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        {data.map((item) => (
-          <tr id={item.id.value} class={item.selected.value ? "danger" : ""}>
-            <td class="col-md-1">{item.id.value}</td>
+        {data.value.map((item) => (
+          <tr id={item.id} class={item.selected.value ? "danger" : ""}>
+            <td class="col-md-1">{item.id}</td>
             <td class="col-md-4">
               <a>{item.label.value}</a>
             </td>
