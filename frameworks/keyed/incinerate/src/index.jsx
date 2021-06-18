@@ -96,31 +96,31 @@ const interact = (event) => {
 };
 
 const del = (id) => {
-  const idIndex = data.value.findIndex((d) => d.id === id);
+  const idIndex = data.findIndex((d) => d.id === id);
 
-  data.value.splice(idIndex, 1);
+  data.splice(idIndex, 1);
   data.value = data.value;
 };
 
 const select = (id) => {
   if (selected > -1) {
-    data.value[selected].selected.value = false;
+    data[selected].selected.value = false;
   }
 
   selected = data.value.findIndex((d) => d.id === id);
-  data.value[selected].selected.value = true;
+  data[selected].selected.value = true;
 };
 
 const swapRows = () => {
-  if (data.value.length > 998) {
-    [data.value[998], data.value[1]] = [data.value[1], data.value[998]];
+  if (data.length > 998) {
+    [data[998], data[1]] = [data[1], data[998]];
     data.value = data.value;
   }
 };
 
 const update = () => {
-  for (let index = 0; index < data.value.length; index += 10) {
-    const item = data.value[index];
+  for (let index = 0; index < data.length; index += 10) {
+    const item = data[index];
     item.label.value = `${item.label.value} !!!`;
   }
 };
@@ -224,7 +224,7 @@ const template = (
       class="table table-hover table-striped test-data"
     >
       <tbody>
-        {data.value.map((item) => (
+        {data.map((item) => (
           <tr id={item.id} class={item.selected.value ? "danger" : ""}>
             <td class="col-md-1">{item.id}</td>
             <td class="col-md-4">
