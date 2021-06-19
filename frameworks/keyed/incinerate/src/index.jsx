@@ -66,21 +66,29 @@ let dataId = 1;
 let selected = -1;
 
 const add = () => {
-  data.value = [...data.value, ...buildData(1000)];
+  data.value.push(...buildData(1000));
+  data.value = data.value;
 };
 
 const run = () => {
-  data.value = [];
-  data.value = buildData(1000);
+  data.value.length = 0;
+  data.value = data.value;
+
+  data.value.push(...buildData(1000));
+  data.value = data.value;
 };
 
 const runLots = () => {
-  data.value = [];
-  data.value = buildData(10000);
+  data.value.length = 0;
+  data.value = data.value;
+
+  data.value.push(...buildData(10000));
+  data.value = data.value;
 };
 
 const clear = () => {
-  data.value = [];
+  data.value.length = 0;
+  data.value = data.value;
 };
 
 const interact = (event) => {
