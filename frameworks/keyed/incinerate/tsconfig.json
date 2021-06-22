@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "preserve",
+    "strict": true,
+    "types": ["@incinerate/runtime"]
+  },
+  "files": ["./src/index.tsx"]
+}

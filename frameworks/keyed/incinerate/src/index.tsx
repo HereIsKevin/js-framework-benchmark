@@ -1,6 +1,10 @@
-import { signal } from "@incinerate/runtime";
+import { Signal, signal } from "@incinerate/runtime";
 
-const _random = (max) => Math.round(Math.random() * 1000) % max;
+interface Row {
+  id: number;
+  label: Signal<string>;
+  selected: Signal<boolean>;
+}
 
 const adjectives = [
   "pretty",
@@ -60,89 +64,93 @@ const nouns = [
   "keyboard",
 ];
 
-const data = signal([]);
+const data = signal<Row[]>([]);
 
 let dataId = 1;
 let selected = -1;
 
-const add = () => {
+function random(max: number): number {
+  return Math.round(Math.random() * 1000) % max;
+}
+
+function add(): void {
   data.value.push(...buildData(1000));
   data.value = data.value;
-};
+}
 
-const run = () => {
+function run(): void {
   data.value.length = 0;
   data.value = data.value;
 
   data.value.push(...buildData(1000));
   data.value = data.value;
-};
+}
 
-const runLots = () => {
+function runLots(): void {
   data.value.length = 0;
   data.value = data.value;
 
   data.value.push(...buildData(10000));
   data.value = data.value;
-};
+}
 
-const clear = () => {
+function clear(): void {
   data.value.length = 0;
   data.value = data.value;
-};
+}
 
-const interact = (event) => {
-  const cell = event.target.closest("td");
+function interact(event: MouseEvent): void {
+  const cell = (event.target as Element).closest("td")!;
   const interaction = cell.getAttribute("data-interaction");
-  const id = Number(cell.parentNode.id);
+  const id = Number((cell.parentNode as Element).id);
 
   if (interaction === "delete") {
     del(id);
   } else {
     select(id);
   }
-};
+}
 
-const del = (id) => {
+function del(id: number): void {
   const idIndex = data.value.findIndex((d) => d.id === id);
 
   data.value.splice(idIndex, 1);
   data.value = data.value;
-};
+}
 
-const select = (id) => {
+function select(id: number): void {
   if (selected > -1) {
     data.value[selected].selected.value = false;
   }
 
   selected = data.value.findIndex((d) => d.id === id);
   data.value[selected].selected.value = true;
-};
+}
 
-const swapRows = () => {
+function swapRows(): void {
   if (data.value.length > 998) {
     [data.value[998], data.value[1]] = [data.value[1], data.value[998]];
     data.value = data.value;
   }
-};
+}
 
-const update = () => {
+function update(): void {
   for (let index = 0; index < data.value.length; index += 10) {
     const item = data.value[index];
     item.label.value = `${item.label.value} !!!`;
   }
-};
+}
 
-const buildData = (count) => {
+function buildData(count: number): Row[] {
   const data = new Array(count);
 
   for (let index = 0; index < count; index++) {
     data[index] = {
       id: dataId,
       label: signal(
-        `${adjectives[_random(adjectives.length)]} ${
-          colors[_random(colors.length)]
-        } ${nouns[_random(nouns.length)]}`
+        `${adjectives[random(adjectives.length)]} ${
+          colors[random(colors.length)]
+        } ${nouns[random(nouns.length)]}`
       ),
       selected: signal(false),
     };
@@ -151,7 +159,7 @@ const buildData = (count) => {
   }
 
   return data;
-};
+}
 
 const container = document.getElementById("container");
 const template = (
@@ -233,7 +241,7 @@ const template = (
     >
       <tbody>
         {data.value.map((item) => (
-          <tr id={item.id} class={item.selected.value ? "danger" : ""}>
+          <tr id={String(item.id)} class={item.selected.value ? "danger" : ""}>
             <td class="col-md-1">{item.id}</td>
             <td class="col-md-4">
               <a>{item.label.value}</a>
@@ -258,4 +266,4 @@ const template = (
   </div>
 );
 
-container.appendChild(template);
+container!.appendChild(template);

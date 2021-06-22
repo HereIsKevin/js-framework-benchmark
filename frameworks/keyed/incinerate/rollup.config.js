@@ -3,9 +3,14 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { terser } from "rollup-plugin-terser";
 
 export default {
-  input: "./src/index.jsx",
+  input: "./src/index.tsx",
   plugins: [
-    babel({ babelHelpers: "bundled", plugins: ["@incinerate/babel-plugin"] }),
+    babel({
+      babelHelpers: "bundled",
+      extensions: [".tsx"],
+      presets: ["@babel/preset-typescript"],
+      plugins: ["@incinerate/babel-plugin"],
+    }),
     nodeResolve(),
     terser(),
   ],
